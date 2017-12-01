@@ -5,14 +5,11 @@ Package.describe({
   documentation: "README.md"
 });
 
+Npm.depends({
+  "es5-shim": "4.5.9"
+});
+
 Package.onUse(function(api) {
   api.use("modules");
-  api.use("server-render");
-  api.use("shim-common");
-  api.mainModule("console.js", "client");
-  api.mainModule("server.js", "server");
-  api.addAssets([
-    "es5-shim-sham.js",
-    "es5-shim-sham.min.js",
-  ], "client");
+  api.mainModule("client.js", "web.browser.legacy");
 });

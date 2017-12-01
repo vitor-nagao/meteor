@@ -29,7 +29,6 @@ Package.onUse(function(api) {
     // decide whether to inject <script> tags into the <head> of the
     // response document to polyfill Web Sockets and/or ES5 support.
     'sockjs-shim',
-    'es5-shim',
 
     // Push code changes to the client and automatically reload the page
     'hot-code-push'
