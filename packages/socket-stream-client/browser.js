@@ -161,7 +161,6 @@ export class ClientStream extends StreamClientCommon {
     // Convert raw URL to SockJS URL each time we open a connection, so
     // that we can connect to random hostnames and get around browser
     // per-host connection limits.
-    const { SockJS } = global;
     this.socket = typeof SockJS === "function"
       ? new SockJS(toSockjsUrl(this.rawUrl), undefined, options)
       : new WebSocket(toWebsocketUrl(this.rawUrl));
