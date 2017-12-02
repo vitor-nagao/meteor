@@ -299,8 +299,10 @@ BCp._inferHelper = function (
           "Warning: unable to resolve " +
             JSON.stringify(id) +
             " in " + path.join(".") +
-            " of " + controlFilePath
+            " of " + controlFilePath + ", due to:"
         );
+
+        console.error(e.stack || e);
       }
 
       return null;
@@ -389,7 +391,12 @@ function requireWithPrefix(inputFile, id, prefix, controlFilePath) {
   };
 }
 
-// 'react-hot-loader/babel' => 'react-hot-loader'
+// react-hot-loader/babel => react-hot-loader
+// @babel/preset-env/lib/index.js => @babel/preset-env
 function packageNameFromTopLevelModuleId(id) {
-  return id.split("/", 1)[0];
+  const parts = id.split("/", 2);
+  if (parts[0].charAt(0) === "@") {
+    return parts.join("/");
+  }
+  return parts[0];
 }
