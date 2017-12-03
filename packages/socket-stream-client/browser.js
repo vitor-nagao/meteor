@@ -158,37 +158,53 @@ export class ClientStream extends StreamClientCommon {
       ...this.options._sockjsOptions
     };
 
-    // Convert raw URL to SockJS URL each time we open a connection, so
-    // that we can connect to random hostnames and get around browser
-    // per-host connection limits.
-    this.socket = typeof SockJS === "function"
+    const hasSockJS = typeof SockJS === "function";
+    let lastError = null;
+
+    this.socket = hasSockJS
+      // Convert raw URL to SockJS URL each time we open a connection, so
+      // that we can connect to random hostnames and get around browser
+      // per-host connection limits.
       ? new SockJS(toSockjsUrl(this.rawUrl), undefined, options)
       : new WebSocket(toWebsocketUrl(this.rawUrl));
 
     this.socket.onopen = data => {
+      lastError = null;
       this._connected();
     };
-    this.socket.onmessage = data => {
-      this._heartbeat_received();
 
-      if (this.currentStatus.connected)
+    this.socket.onmessage = data => {
+      lastError = null;
+      this._heartbeat_received();
+      if (this.currentStatus.connected) {
         this.forEachCallback('message', callback => {
           callback(data.data);
         });
+      }
     };
+
     this.socket.onclose = () => {
-      this._lostConnection();
+      Promise.resolve(
+        // If the socket is closing because there was an error, and we
+        // didn't load SockJS before, try loading it dynamically before
+        // retrying the connection.
+        lastError && ! hasSockJS &&
+        import("./sockjs-0.3.4.js")
+      ).done(() => {
+        this._lostConnection();
+      });
     };
-    this.socket.onerror = (...args) => {
-      // XXX is this ever called?
+
+    this.socket.onerror = error => {
       console.log(
         'stream error',
-        args,
+        lastError = error,
         new Date().toDateString()
       );
     };
 
     this.socket.onheartbeat = () => {
+      lastError = null;
       this._heartbeat_received();
     };
 
