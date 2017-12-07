@@ -21,6 +21,11 @@
       "resolved": "https://registry.npmjs.org/@babel/helper-annotate-as-pure/-/helper-annotate-as-pure-7.0.0-beta.34.tgz",
       "integrity": "sha512-Sbf/3iLVGtq0SEI5qDV2uGKGLWsqMKFl/jKVWXomp0SYYuLtWxvMacvVaYa5EQ7U17y4yf9iao9GQrBJ6MOzXg=="
     },
+    "@babel/helper-builder-binary-assignment-operator-visitor": {
+      "version": "7.0.0-beta.34",
+      "resolved": "https://registry.npmjs.org/@babel/helper-builder-binary-assignment-operator-visitor/-/helper-builder-binary-assignment-operator-visitor-7.0.0-beta.34.tgz",
+      "integrity": "sha512-tqtviffy4ftWyJoCl/tajjsEcO3qHDYeUKHj/JMFZxBK2NNpYToq6a5GIQ0v87xlDXFI1/MAjvW4XRIeJDBJBw=="
+    },
     "@babel/helper-builder-react-jsx": {
       "version": "7.0.0-beta.34",
       "resolved": "https://registry.npmjs.org/@babel/helper-builder-react-jsx/-/helper-builder-react-jsx-7.0.0-beta.34.tgz",
@@ -35,6 +40,11 @@
       "version": "7.0.0-beta.34",
       "resolved": "https://registry.npmjs.org/@babel/helper-define-map/-/helper-define-map-7.0.0-beta.34.tgz",
       "integrity": "sha512-MG/xndS6/jLoZMm11i/YXVLgvDFo5gH4hKm9+2HW5qmiCW0v9T2k930yJoPhwjeOb0O38gxmy1vE9/35nmX1Qw=="
+    },
+    "@babel/helper-explode-assignable-expression": {
+      "version": "7.0.0-beta.34",
+      "resolved": "https://registry.npmjs.org/@babel/helper-explode-assignable-expression/-/helper-explode-assignable-expression-7.0.0-beta.34.tgz",
+      "integrity": "sha512-1xxcIc9JUpm+E3ZEa8yV5+vkMwDd0Cel2fV7UzsWFG0IcRY3dC+tJ9c3auf3oCVd3jn+4zTbwws5KRbiKb0XIg=="
     },
     "@babel/helper-function-name": {
       "version": "7.0.0-beta.34",
@@ -71,6 +81,11 @@
       "resolved": "https://registry.npmjs.org/@babel/helper-regex/-/helper-regex-7.0.0-beta.34.tgz",
       "integrity": "sha512-IQss/f04tvVEvs7XyEyuQO9HerP6Sa/ZoaqV4E6BXa023s1OhNg0TqRjepRU80Evn+L4zdVy/m8K6xe0V5lnzw=="
     },
+    "@babel/helper-remap-async-to-generator": {
+      "version": "7.0.0-beta.34",
+      "resolved": "https://registry.npmjs.org/@babel/helper-remap-async-to-generator/-/helper-remap-async-to-generator-7.0.0-beta.34.tgz",
+      "integrity": "sha512-Jf/YLf55UH/llbozjmUfzDZV40WO7eUuiTrgqqqBq5Yl/ARuGDAk4RnQhUaKj7IRsSvzb6IV6qObj/boI9bD0g=="
+    },
     "@babel/helper-replace-supers": {
       "version": "7.0.0-beta.34",
       "resolved": "https://registry.npmjs.org/@babel/helper-replace-supers/-/helper-replace-supers-7.0.0-beta.34.tgz",
@@ -81,6 +96,11 @@
       "resolved": "https://registry.npmjs.org/@babel/helper-simple-access/-/helper-simple-access-7.0.0-beta.34.tgz",
       "integrity": "sha512-xetjlCPV6rrnuW3Q0mim9VEXZKsQHCu90UQO5AD3i79IYNVZcVNByTOJNP7Lcs4DIbKki4aPbaCA7Gt/GhMMvQ=="
     },
+    "@babel/helper-wrap-function": {
+      "version": "7.0.0-beta.34",
+      "resolved": "https://registry.npmjs.org/@babel/helper-wrap-function/-/helper-wrap-function-7.0.0-beta.34.tgz",
+      "integrity": "sha512-hXE7ob10HNumhoVMHyBH9skoL6LTTkP/GUTMd8MB93KwXyezqvM/2dfIzGySI5YzfVqjg4Rij1jhfhV8wPAg/Q=="
+    },
     "@babel/helpers": {
       "version": "7.0.0-beta.34",
       "resolved": "https://registry.npmjs.org/@babel/helpers/-/helpers-7.0.0-beta.34.tgz",
@@ -90,6 +110,11 @@
       "version": "7.0.0-beta.34",
       "resolved": "https://registry.npmjs.org/@babel/plugin-check-constants/-/plugin-check-constants-7.0.0-beta.34.tgz",
       "integrity": "sha512-H68lHIRXAD9OH8AMtfq9g7bnn2fEjuh68rlyLzUnaj443GxN2O8XLqhGJc2hFwFizqM6QfLLsafPzIelS7NnMQ=="
+    },
+    "@babel/plugin-proposal-async-generator-functions": {
+      "version": "7.0.0-beta.34",
+      "resolved": "https://registry.npmjs.org/@babel/plugin-proposal-async-generator-functions/-/plugin-proposal-async-generator-functions-7.0.0-beta.34.tgz",
+      "integrity": "sha512-fyhp4cF2IR1I4gHkTtQdDshoF7qOSr7xiOwffnuqSU40sEjF9EdmRbGPNjn/KaINnLM0zZfuKEUCWntzl0pa7Q=="
     },
     "@babel/plugin-proposal-class-properties": {
       "version": "7.0.0-beta.34",
@@ -136,6 +161,11 @@
       "resolved": "https://registry.npmjs.org/@babel/plugin-transform-arrow-functions/-/plugin-transform-arrow-functions-7.0.0-beta.34.tgz",
       "integrity": "sha512-ECCEH+tr0Ei5DPglMTR51KV/h1lLac0N06tf69/sKxjq+m+mLiYM2y82AgEFBtAxlRepkBt3LcnVM8AvWv+W4A=="
     },
+    "@babel/plugin-transform-async-to-generator": {
+      "version": "7.0.0-beta.34",
+      "resolved": "https://registry.npmjs.org/@babel/plugin-transform-async-to-generator/-/plugin-transform-async-to-generator-7.0.0-beta.34.tgz",
+      "integrity": "sha512-pl5MtQkMq9Aj0Vk4wdTHwVjw38d7C+OceVlcTnW6epscpdG3DJgzeFviteBfZg/IzULvYCQ4p1leN+Kw3PMLag=="
+    },
     "@babel/plugin-transform-block-scoped-functions": {
       "version": "7.0.0-beta.34",
       "resolved": "https://registry.npmjs.org/@babel/plugin-transform-block-scoped-functions/-/plugin-transform-block-scoped-functions-7.0.0-beta.34.tgz",
@@ -160,6 +190,11 @@
       "version": "7.0.0-beta.34",
       "resolved": "https://registry.npmjs.org/@babel/plugin-transform-destructuring/-/plugin-transform-destructuring-7.0.0-beta.34.tgz",
       "integrity": "sha512-D7UNymLG3VmIib9S3u9sMPFmnOoWNKkJQz7GI/NLMgtNem0Ew900ZhS9fxsqGF9muawhQeni9adKr15WdDsUCg=="
+    },
+    "@babel/plugin-transform-exponentiation-operator": {
+      "version": "7.0.0-beta.34",
+      "resolved": "https://registry.npmjs.org/@babel/plugin-transform-exponentiation-operator/-/plugin-transform-exponentiation-operator-7.0.0-beta.34.tgz",
+      "integrity": "sha512-RibodTBl0AywXHMEhI0UUywlLiWiP42ACvun4+QOSkOQRMj+PKkyNbC/Nc7bgE8vgih+LrnzJ0KXI3lvHs6q8A=="
     },
     "@babel/plugin-transform-flow-strip-types": {
       "version": "7.0.0-beta.34",
@@ -397,9 +432,9 @@
       "integrity": "sha512-NiOvvA9Pq6bki6nP4BayXwT5GZadw7DJFDDzHmkpnOQpENWe8RtHtKZM44MG1R6EQ5XxgbLdsdhswIzTkFlO5g=="
     },
     "babel-plugin-transform-es2015-modules-reify": {
-      "version": "0.13.2",
-      "resolved": "https://registry.npmjs.org/babel-plugin-transform-es2015-modules-reify/-/babel-plugin-transform-es2015-modules-reify-0.13.2.tgz",
-      "integrity": "sha512-C/S8ykbUn/Mf/BKys0Q0PGcuKi8lAEmJwa/cY4vmsaLlkwv+z6pQBWOd82Vks35thOmzCiqWF2isJ4DQY21Wkg=="
+      "version": "0.13.3",
+      "resolved": "https://registry.npmjs.org/babel-plugin-transform-es2015-modules-reify/-/babel-plugin-transform-es2015-modules-reify-0.13.3.tgz",
+      "integrity": "sha512-WsHR5qLvhUw+p+X0xPmlC4acmqYa7D1PSXKSCgIy8EeWUYGUev7Mkl5dlZwVfun342VsHRHHFqim22O7qd4Uzw=="
     },
     "babel-plugin-transform-inline-consecutive-adds": {
       "version": "0.2.0",
@@ -457,9 +492,9 @@
       "integrity": "sha512-goYwp8dMrzHD6x9GjZ2M85Mk2vxf1h85CnUgAjfftUnlJvzF4uj5MrbReHBTbjQ96C8CuRzvhYZ3tv8H3Sc1ZA=="
     },
     "babel-preset-meteor": {
-      "version": "7.0.0-beta.34",
-      "resolved": "https://registry.npmjs.org/babel-preset-meteor/-/babel-preset-meteor-7.0.0-beta.34.tgz",
-      "integrity": "sha512-2NFKLlP+RA2eFCYCwNwRcGxbYm7KguMVFzA0yFJr5KY2RrUXK1kUu1z9maD6dIujjdELWzpwehPBMAIEdjy2Kg=="
+      "version": "7.0.0-beta.34-4",
+      "resolved": "https://registry.npmjs.org/babel-preset-meteor/-/babel-preset-meteor-7.0.0-beta.34-4.tgz",
+      "integrity": "sha512-l7JrONTgoimjUXXTPtnKoZY2E+0kbW/Z4f5qMSRse6moVHc+by8FIJ6wNXsFzqoD8fZ2SeYDY3oG/6mfGG1ojA=="
     },
     "babel-preset-minify": {
       "version": "0.2.0",
@@ -672,9 +707,9 @@
       "integrity": "sha1-0aitM/qc4OcT1l/dCsi3SNR4yEg="
     },
     "meteor-babel": {
-      "version": "7.0.0-beta.34-1",
-      "resolved": "https://registry.npmjs.org/meteor-babel/-/meteor-babel-7.0.0-beta.34-1.tgz",
-      "integrity": "sha512-+VJcfGDWMCF4aqCC0hbq4N2WOMnRW/uE1GUtmVomdyI+wAFsbmp2lGZyGCvU2M+K+76bLHw5BbJFvJNfRUSJBA=="
+      "version": "7.0.0-beta.34-5",
+      "resolved": "https://registry.npmjs.org/meteor-babel/-/meteor-babel-7.0.0-beta.34-5.tgz",
+      "integrity": "sha512-pOVq3FIanPsVvrL9EoEmPxZdckcFsBeis2JOZO6VOtVnB/2WCleiroaEwqci4AHy//5DJ4wHVmc8D5cC0A/3VA=="
     },
     "meteor-babel-helpers": {
       "version": "0.0.3",
@@ -803,9 +838,9 @@
       }
     },
     "reify": {
-      "version": "0.13.1",
-      "resolved": "https://registry.npmjs.org/reify/-/reify-0.13.1.tgz",
-      "integrity": "sha512-mwumMhtBZmKoDKamiCxufgUp7Jxugh9JFOlDYlZ7W3lEy9mXGNSHwasF0u9DDFd2ygqs3FRs/9iRp8uD8ClRqQ=="
+      "version": "0.13.2",
+      "resolved": "https://registry.npmjs.org/reify/-/reify-0.13.2.tgz",
+      "integrity": "sha512-KyXD6QMZO4xTPdaEWuhsgN9R/Hyfi+wQaxY4o02mWzhsswtvPaBTGWbjZkzsYvlIB4N2zaBrGO7qLGjFJSt1lw=="
     },
     "remove-trailing-separator": {
       "version": "1.1.0",

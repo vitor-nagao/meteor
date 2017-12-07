@@ -10,15 +10,17 @@ Package.describe({
 });
 
 Npm.depends({
-  'meteor-babel': '7.0.0-beta.34-1'
+  'meteor-babel': '7.0.0-beta.34-5'
 });
 
 Package.onUse(function (api) {
   api.use('ecmascript-runtime', 'server');
+  api.use('modern-browsers');
 
   api.addFiles([
     'babel.js',
-    'babel-compiler.js'
+    'babel-compiler.js',
+    'versions.js',
   ], 'server');
 
   api.export('Babel', 'server');
