@@ -323,6 +323,55 @@ function canonicalizeSite(site) {
   return parsed.hostname;
 };
 
+// Executes the poll to check for deployment success and outputs proper messages
+// to user about the status of their app during the polling process
+function executePollForDeploymentSuccess(versionId, deployPollTimeout, result) {
+  // Create a default polling configuration for polling for deploy / build
+  // In the future, we may change this to be user-configurable or smart
+  // The user can only currently configure the polling timeout via a flag
+  let pollingConfiguration = new PollingConfiguration(deployPollTimeout);
+  
+  var deploymentPollResult = buildmessage.enterJob({
+    title: "Waiting for Deploy to succeed..."}, 
+    function() {
+      return pollForDeploy(pollingConfiguration,
+        versionId,
+        true);
+    });
+
+  if(deploymentPollResult && deploymentPollResult.isActive) {
+    // The deploy succeeded and the deployed version is now active
+    const {newVersionNum, hostname, username, region, galaxyUrl} = result.payload;
+    var successfulDeploymentMessage = `
+    ******************************************************************************
+    You have successfully upgraded your app to version ${newVersionNum}.
+    Hostname: ${hostname}, Region: ${region}, Username: ${username}
+    To see the status of your app, visit your app's page on Galaxy
+    \t\t${galaxyUrl}.
+    ******************************************************************************
+    `
+    Console.info(successfulDeploymentMessage);
+  } else {
+    // The deploy did not succeed or the polling timed out
+    if(deploymentPollResult.buildStatus === 'failed-permanently' ||
+      deploymentPollResult.deployStatus === 'failed') {
+        const {newVersionNum, hostname, username, region, galaxyUrl} = result.payload;
+        var failedDeploymentMessage = `
+        ******************************************************************************
+        Failed to deploy your app to version ${newVersionNum}. No changes were made.
+        Hostname: ${hostname}, Region: ${region}, Username: ${username}
+        To see the logs for your app, visit ${galaxyUrl}/logs.
+        ******************************************************************************
+        `
+        Console.info(successfulDeploymentMessage);
+      } else {
+        // The status was non-terminal, so we most likely timed out
+        Console.info(result.payload.message);
+        return 1;
+      }
+  }
+}
+
 // Creates a polling configuration with defaults if fields left unset
 // Default initialWaitTime is 10 seconds – this is the time to wait before checking at all
 // Default startInterval is 700 milliseconds – this is the first wait interval between polls
@@ -599,51 +648,11 @@ export function bundleAndDeploy(options) {
   // We used to indicate that the upload was finished via a message to check Galaxy
   if (result.payload.message) {
     // If there is a newVersionId, then poll for status of the app
-    if(result.payload.newVersionId) {
-      // Create a default polling configuration for polling for deploy / build
-      // In the future, we may change this to be user-configurable or smart
-      // The user can only currently configure the polling timeout via a flag
-      let pollingConfiguration = new PollingConfiguration(options.deployPollingTimeoutMillis);
-
-      var deploymentPollResult = buildmessage.enterJob({
-        title: "Waiting for Deploy to succeed..."}, 
-        function() {
-          return pollForDeploy(pollingConfiguration,
-            result.payload.newVersionId,
-            true);
-        });
-
-      if(deploymentPollResult && deploymentPollResult.isActive) {
-        // The deploy succeeded and the deployed version is now active
-        const {newVersionNum, hostname, username, region, galaxyUrl} = result.payload;
-        var successfulDeploymentMessage = `
-        ******************************************************************************
-        You have successfully upgraded your app to version ${newVersionNum}.
-        Hostname: ${hostname}, Region: ${region}, Username: ${username}
-        To see the status of your app, visit your app's page on Galaxy
-        \t\t${galaxyUrl}.
-        ******************************************************************************
-        `
-        Console.info(successfulDeploymentMessage);
-      } else {
-        // The deploy did not succeed or the polling timed out
-        if(deploymentPollResult.buildStatus === 'failed-permanently' ||
-          deploymentPollResult.deployStatus === 'failed') {
-            const {newVersionNum, hostname, username, region, galaxyUrl} = result.payload;
-            var failedDeploymentMessage = `
-            ******************************************************************************
-            Failed to deploy your app to version ${newVersionNum}. No changes were made.
-            Hostname: ${hostname}, Region: ${region}, Username: ${username}
-            To see the logs for your app, visit ${galaxyUrl}/logs.
-            ******************************************************************************
-            `
-            Console.info(successfulDeploymentMessage);
-          } else {
-            // The status was non-terminal, so we most likely timed out
-            Console.info(result.payload.message);
-            return 1;
-          }
-      }
+    let newVersionId = result.payload.newVersionId;
+    if(!!newVersionId) {
+      return executePollForDeploymentSuccess(newVersionId, 
+        options.deployPollingTimeoutMillis,
+      result);
     } else {
       // The previous path
       Console.info(result.payload.message);
