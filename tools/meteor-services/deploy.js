@@ -602,7 +602,8 @@ export function bundleAndDeploy(options) {
     if(result.payload.newVersionId) {
       // Create a default polling configuration for polling for deploy / build
       // In the future, we may change this to be user-configurable or smart
-      let pollingConfiguration = new PollingConfiguration();
+      // The user can only currently configure the polling timeout via a flag
+      let pollingConfiguration = new PollingConfiguration(options.deployPollingTimeoutMillis);
 
       var deploymentPollResult = buildmessage.enterJob({
         title: "Waiting for Deploy to succeed..."}, 
@@ -639,7 +640,6 @@ export function bundleAndDeploy(options) {
             Console.info(successfulDeploymentMessage);
           } else {
             // The status was non-terminal, so we most likely timed out
-            Console.info('most likely timed out!')
             Console.info(result.payload.message);
             return 1;
           }
@@ -673,7 +673,7 @@ export function bundleAndDeploy(options) {
       });
     }
   }
-  
+
   return 0;
 };
 
