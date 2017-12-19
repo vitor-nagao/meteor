@@ -425,71 +425,71 @@ function pollForDeploy(pollingState, versionId, firstRun = true) {
     pollingState.initialize();
     sleepMs(initialWaitTimeMs);
     return pollForDeploy(pollingState, versionId, false);
-  } else {
-    // Do a call to the version-status endpoint for the specified versionId
-    const versionStatusResult = deployRpc({
-      method: 'GET',
-      operation: 'version-status',
-      site: versionId,
-      expectPayload: [],
-      printDeployURL: false,
-    });
+  }
 
-    //Check the details of the Version Status response and compare to last call
-    if(versionStatusResult &&
-      versionStatusResult.payload &&
-      versionStatusResult.payload.buildStatus) {
-      // Collect all of the statuses from the returned rpc call
-      const {
-        buildStatus, deployStatus, isActive
-      } = versionStatusResult.payload;
+  // Do a call to the version-status endpoint for the specified versionId
+  const versionStatusResult = deployRpc({
+    method: 'GET',
+    operation: 'version-status',
+    site: versionId,
+    expectPayload: [],
+    printDeployURL: false,
+  });
 
-      // If the build status has changed, we should report on that change to the user
-      // Allowable values for buildStatus are :
-      // ['missing', 'failed-temporarily', 'failed-permanently', 'success', 'building']
-      //    We will ignore the 'missing' buildStatus, and treat 'failed-temporarily'
-      //    the same as we do 'building', trusting the server to change the status.
-      if(currentStatus.buildStatus !== buildStatus) {
-        // Update our tracking variable for buildStatus
-        currentStatus.buildStatus = buildStatus;
-        // If the build was successful, report it
-        if (buildStatus === 'success') {
-            Console.info('Successfully built app image, initiating deploy');
-        } else {
-          // Report if the buildStatus changes state
-          Console.info(`Build status: ${buildStatus}`)
-        }
-      } else if(currentStatus.deployStatus !== deployStatus) {
-        currentStatus.deployStatus = deployStatus;
-        if (deployStatus === 'success') {
-            Console.info('Your app has been deployed successfully.' +
-              ' Checking for new version to be active...');
-        } else {
-          // Report if the deployStatus changes state
-          Console.info(`Deploy status: ${deployStatus}`)
-        }
-      } else if(currentStatus.isActive !== isActive) {
-        currentStatus.isActive = isActive;
-        // isActive was initialized to false, so it can only be true
-        Console.info('Your deployed version is now active.');
+  //Check the details of the Version Status response and compare to last call
+  if(versionStatusResult &&
+    versionStatusResult.payload &&
+    versionStatusResult.payload.buildStatus) {
+    // Collect all of the statuses from the returned rpc call
+    const {
+      buildStatus, deployStatus, isActive, isFinished
+    } = versionStatusResult.payload;
+
+    // If the build status has changed, we should report on that change to the user
+    // Allowable values for buildStatus are :
+    // ['missing', 'failed-temporarily', 'failed-permanently', 'success', 'building']
+    //    We will ignore the 'missing' buildStatus, and treat 'failed-temporarily'
+    //    the same as we do 'building', trusting the server to change the status.
+    if(currentStatus.buildStatus !== buildStatus) {
+      // Update our tracking variable for buildStatus
+      currentStatus.buildStatus = buildStatus;
+      // If the build was successful, report it
+      if (buildStatus === 'success') {
+          Console.info('Successfully built app image, initiating deploy');
+      } else {
+        // Report if the buildStatus changes state
+        Console.info(`Build status: ${buildStatus}`)
       }
-    } else {
-      // If we did not get a valid Version Status response, just fail silently
-      // keep polling as per usual – this may have just been a whiff from Galaxy
+    } else if(currentStatus.deployStatus !== deployStatus) {
+      currentStatus.deployStatus = deployStatus;
+      if (deployStatus === 'success') {
+          Console.info('Your app has been deployed successfully.' +
+            ' Checking for new version to be active...');
+      } else {
+        // Report if the deployStatus changes state
+        Console.info(`Deploy status: ${deployStatus}`)
+      }
+    } else if(currentStatus.isActive !== isActive) {
+      currentStatus.isActive = isActive;
+      // isActive was initialized to false, so it can only be true
+      Console.info('Your deployed version is now active.');
     }
+  } else {
+    // If we did not get a valid Version Status response, just fail silently
+    // keep polling as per usual – this may have just been a whiff from Galaxy
+  }
 
-    let elapsed = new Date().getTime() - start;
-    // Poll again if version status isn't in a terminal state and we haven't exceeded the timeout
-    if(elapsed < timeoutMs && !versionStatusResult.payload.isFinished) {
-      // Wait for a set interval and then poll again
-      sleepMs(pollIntervalMs);
-      return pollForDeploy(pollingState, versionId, false);
-    } else if (versionStatusResult.payload.isFinished) {
-      return versionStatusResult.payload;
-    } else {
-      Console.info('Polling timed out');
-      return versionStatusResult.payload;
-    }
+  let elapsed = new Date().getTime() - start;
+  // Poll again if version status isn't in a terminal state and we haven't exceeded the timeout
+  if(elapsed < timeoutMs && !versionStatusResult.payload.isFinished) {
+    // Wait for a set interval and then poll again
+    sleepMs(pollIntervalMs);
+    return pollForDeploy(pollingState, versionId, false);
+  } else if (versionStatusResult.payload.isFinished) {
+    return versionStatusResult.payload;
+  } else {
+    Console.info('Polling timed out');
+    return versionStatusResult.payload;
   }
 }
 
@@ -621,8 +621,9 @@ export function bundleAndDeploy(options) {
     // If there is a newVersionId, then poll for status of the app
     let newVersionId = result.payload.newVersionId;
     if(!!newVersionId) {
+      Console.info('options!', options);
       return executePollForDeploymentSuccess(newVersionId, 
-        options.deployPollingTimeoutMs,
+        options.deployPollingTimeoutMillis,
         result);
     } else {
       // The previous path
