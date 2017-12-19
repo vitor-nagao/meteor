@@ -35,7 +35,7 @@ Meteor.startup(() => {
 
   Object.keys(dynamicImportInfo).forEach(setUpPlatform);
 
-  Package.webapp.WebApp.connectHandlers.use(
+  Package.webapp.WebAppInternals.meteorInternalHandlers.use(
     fetchURL,
     middleware
   );
