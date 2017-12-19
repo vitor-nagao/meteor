@@ -21,8 +21,8 @@ import {
 } from './auth.js';
 import { recordPackages } from './stats.js';
 import { Console } from '../console/console.js';
-import { setTimeout } from 'timers';
-var fiberHelpers = require('../utils/fiber-helpers.js');
+import { fiberHelpers } from '../utils/fiber-helpers.js';
+import { sleepMs } from '../utils/utils.js';
 
 const hasOwn = Object.prototype.hasOwnProperty;
 
@@ -45,7 +45,8 @@ const CAPABILITIES = ['showDeployMessages', 'canTransferAuthorization'];
 //
 // Options include:
 // - method: GET, POST, or DELETE. default GET
-// - operation: "info", "logs", "mongo", "deploy", "authorized-apps", "version-status"
+// - operation: "info", "logs", "mongo", "deploy", "authorized-apps",
+//   "version-status"
 // - site: site name, version ID
 // - expectPayload: an array of key names. if present, then we expect
 //   the server to return JSON content on success and to return an
@@ -329,40 +330,38 @@ function executePollForDeploymentSuccess(versionId, deployPollTimeout, result) {
   // Create a default polling configuration for polling for deploy / build
   // In the future, we may change this to be user-configurable or smart
   // The user can only currently configure the polling timeout via a flag
-  let pollingConfiguration = new PollingConfiguration(deployPollTimeout);
+  let pollingState = new PollingState(deployPollTimeout);
   
   var deploymentPollResult = buildmessage.enterJob({
     title: "Waiting for Deploy to succeed..."}, 
     function() {
-      return pollForDeploy(pollingConfiguration,
-        versionId,
-        true);
+      return pollForDeploy(pollingState,
+        versionId);
     });
 
+  const {
+    newVersionNum, hostname, username, region, galaxyUrl
+  } = result.payload;
   if(deploymentPollResult && deploymentPollResult.isActive) {
     // The deploy succeeded and the deployed version is now active
-    const {newVersionNum, hostname, username, region, galaxyUrl} = result.payload;
-    var successfulDeploymentMessage = `
-    ******************************************************************************
-    You have successfully upgraded your app to version ${newVersionNum}.
-    Hostname: ${hostname}, Region: ${region}, Username: ${username}
-    To see the status of your app, visit your app's page on Galaxy
-    \t\t${galaxyUrl}.
-    ******************************************************************************
-    `
+    const successfulDeploymentMessage = `
+******************************************************************************
+You have successfully upgraded your app to version ${newVersionNum}.
+Hostname: ${hostname}, Region: ${region}, Username: ${username}
+For details, visit ${galaxyUrl}.
+******************************************************************************
+    `;
     Console.info(successfulDeploymentMessage);
   } else {
     // The deploy did not succeed or the polling timed out
     if(deploymentPollResult.buildStatus === 'failed-permanently' ||
       deploymentPollResult.deployStatus === 'failed') {
-        const {newVersionNum, hostname, username, region, galaxyUrl} = result.payload;
-        var failedDeploymentMessage = `
-        ******************************************************************************
-        Failed to deploy your app to version ${newVersionNum}. No changes were made.
-        Hostname: ${hostname}, Region: ${region}, Username: ${username}
-        To see the logs for your app, visit ${galaxyUrl}/logs.
-        ******************************************************************************
-        `
+        const failedDeploymentMessage = `
+******************************************************************************
+ERROR: Failed to deploy new app version: ${newVersionNum}.
+See ${galaxyUrl}/logs for details.
+******************************************************************************
+        `;
         Console.info(successfulDeploymentMessage);
       } else {
         // The status was non-terminal, so we most likely timed out
@@ -373,32 +372,37 @@ function executePollForDeploymentSuccess(versionId, deployPollTimeout, result) {
 }
 
 // Creates a polling configuration with defaults if fields left unset
+// Right now we only use the default unless timeout is specified
+// We envision potentially creating this configuration object in a programmatic
+// way or via user-specification in the future.
 // Default initialWaitTime is 10 seconds – this is the time to wait before checking at all
 // Default startInterval is 700 milliseconds – this is the first wait interval between polls
 // Default backoffFactor is 1.3
 // Default timeout is 15 minutes
-function PollingConfiguration(
-  timeoutMillis,
-  initialWaitTimeMillis,
-  startIntervalMillis,
-  backoffFactor) {
-    const fifteenMinutesMillis = 15*60*1000;
-    this.initialWaitTimeMillis = initialWaitTimeMillis || 10*1000;
-    this.startIntervalMillis = startIntervalMillis || 700;
-    this.backoffFactor = backoffFactor || 1.3;
-    this.timeoutMillis = timeoutMillis || fifteenMinutesMillis;
+class PollingState {
+  constructor(timeoutMs,
+    initialWaitTimeMs,
+    pollIntervalMs) {
+      const fifteenMinutesMs = 15*60*1000;
+      this.initialWaitTimeMs = initialWaitTimeMs || 10*1000;
+      this.pollIntervalMs = pollIntervalMs || 700;
+      this.timeoutMs = timeoutMs || fifteenMinutesMs
   }
 
-// Build statuses that indicate we should stop polling for build
-const terminalBuildStatuses = ['failed-permanently', 'success']
-// Deploy statuses that indicate we should stop polling for deploy
-const terminalDeployStatuses = ['success', 'failed', 'aborted']
-
-// Declare tracking variables for the duration of the poll
-// `start` tracks the time when we started polling so we can know when to time out
-// `pollingRounds` tracks the number of rounds we have polled, resetting when build/deploy succeed
-// `currentStatus` tracks what the current status is of the build and the deploy for this version
-let start, pollingRounds, currentStatus;
+  // Declare tracking variables for the duration of the poll
+  // `start` tracks the time when we started polling
+  // `pollingRounds` tracks the number of rounds we have polled
+  // `currentStatus` tracks what the current status is for this version
+  initialize() {
+    this.start = new Date();
+    this.currentStatus = {
+      buildStatus: 'missing',
+      deployStatus: 'missing',
+      isActive: false,
+      isFinished: false,
+    }
+  }
+}
 
 // Poll the "version-status" endpoint for the build and deploy status
 // of a specified version ID with a polling configuration.
@@ -406,46 +410,39 @@ let start, pollingRounds, currentStatus;
 // active version by Galaxy. If the build / deploy fails, then the poll
 // will exit. At the end of the poll, this function will return a JSON object
 // which contains a `buildStatus` string, `deployStatus` string, and `isActive` boolean
-function pollForDeploy(pollingConfiguration, versionId, firstRun = true) {
-  let {timeoutMillis,
-    initialWaitTimeMillis,
-    startIntervalMillis,
-    backoffFactor}
-    = pollingConfiguration
-  // If this is the first poll, we will wait for initialWaitTimeMillis before beginning
-  // We also want to initialize all of our tracking variables
+function pollForDeploy(pollingState, versionId, firstRun = true) {
+  const {
+    timeoutMs,
+    initialWaitTimeMs,
+    pollIntervalMs,
+    start,
+    currentStatus,
+  } = pollingState;
+  // If this is the first poll, we will wait for initialWaitTimeMs milliseconds 
+  // before beginning. We also want to initialize all of our tracking variables
   if(firstRun) {
-    // Set up tracking variables to persist and be updated throughout polling
-    start = new Date().getTime();
-    pollingRounds = 1;
-    currentStatus = {buildStatus: null, isActive: false};
-    
-    // Timeouts must be done within Promises, so we set a dummy Promise to
-    // wait before initiating polling
-    return new Promise(function (resolve) {
-      let timer = setTimeout(() => resolve(null), initialWaitTimeMillis);
-    }).then(fiberHelpers.bindEnvironment(function() {
-      return pollForDeploy(pollingConfiguration, versionId, false);
-    })).await();
+    // Initialize the state of the poll, then begin polling after a pause
+    pollingState.initialize();
+    sleepMs(initialWaitTimeMs);
+    return pollForDeploy(pollingState, versionId, false);
   } else {
     // Do a call to the version-status endpoint for the specified versionId
-    let versionStatusResult = deployRpc({
+    const versionStatusResult = deployRpc({
       method: 'GET',
       operation: 'version-status',
       site: versionId,
       expectPayload: [],
       printDeployURL: false,
-    })
-    // We've done one call, so update the number of polling rounds
-    pollingRounds++;
-    let terminal = false;
+    });
 
     //Check the details of the Version Status response and compare to last call
     if(versionStatusResult &&
       versionStatusResult.payload &&
       versionStatusResult.payload.buildStatus) {
       // Collect all of the statuses from the returned rpc call
-      const {buildStatus, deployStatus, isActive} = versionStatusResult.payload;
+      const {
+        buildStatus, deployStatus, isActive
+      } = versionStatusResult.payload;
 
       // If the build status has changed, we should report on that change to the user
       // Allowable values for buildStatus are :
@@ -455,46 +452,26 @@ function pollForDeploy(pollingConfiguration, versionId, firstRun = true) {
       if(currentStatus.buildStatus !== buildStatus) {
         // Update our tracking variable for buildStatus
         currentStatus.buildStatus = buildStatus;
-        // If we have reached a terminal buildStatus, handle it
-        if (terminalBuildStatuses.indexOf(buildStatus) >= 0) {
-          if(buildStatus == 'success') {
+        // If the build was successful, report it
+        if (buildStatus === 'success') {
             Console.info('Successfully built app image, initiating deploy');
-            // Reset the polling rounds to poll faster for a change in deployStatus
-            // Basically, we don't necessarily expect deploying to take a long time simply
-            // because building did.
-            pollingRounds = 1;
-          } else {
-            // Any other terminal status is failure, so report on it
-            Console.info(`Your app failed to build, with buildStatus: ${buildStatus}`);
-            // We also want to stop polling, since deploy cannot succeed with a failed build
-            terminal = true;
-          }
-        } else if (buildStatus !== 'building') {
-          // This will report if the buildStatus changes to a non-terminal, unexpected state
-          //    e.g. failed-temporarily
-          Console.info(`Build state changed to nonterminal state: ${buildStatus}`)
+        } else {
+          // Report if the buildStatus changes state
+          Console.info(`Build status: ${buildStatus}`)
         }
       } else if(currentStatus.deployStatus !== deployStatus) {
-        // Deploy status is treated similarly to buildStatus above
         currentStatus.deployStatus = deployStatus;
-        if (terminalDeployStatuses.indexOf(deployStatus) >= 0) {
-          if(deployStatus == 'success') {
+        if (deployStatus === 'success') {
             Console.info('Your app has been deployed successfully.' +
-              ' Waiting for new version to be active...');
-            // Reset the polling rounds to poll faster for a change in isActive
-            pollingRounds = 1;
-          } else {
-            Console.info(`Your app has failed to deploy, with deployStatus: ${deployStatus}`);
-            terminal = true;
-          }
-        } else if(deployStatus !== 'deploying') {
-          Console.info(`Deploy status changed to nonterminal state: ${deployStatus}`)
+              ' Checking for new version to be active...');
+        } else {
+          // Report if the deployStatus changes state
+          Console.info(`Deploy status: ${deployStatus}`)
         }
       } else if(currentStatus.isActive !== isActive) {
         currentStatus.isActive = isActive;
         // isActive was initialized to false, so it can only be true
         Console.info('Your deployed version is now active.');
-        terminal = true;
       }
     } else {
       // If we did not get a valid Version Status response, just fail silently
@@ -503,20 +480,14 @@ function pollForDeploy(pollingConfiguration, versionId, firstRun = true) {
 
     let elapsed = new Date().getTime() - start;
     // Poll again if version status isn't in a terminal state and we haven't exceeded the timeout
-    if(elapsed < timeoutMillis && !terminal) {
-      let newWaitTime = startIntervalMillis*Math.pow(backoffFactor, pollingRounds);
-
-      // Wait for exponentially increasingly more time, and then poll again
-      return new Promise(function (resolve) {
-        let timer = setTimeout(() => resolve(null), newWaitTime);
-      }).then(fiberHelpers.bindEnvironment(function() {
-        return pollForDeploy(pollingConfiguration, versionId, false);
-      })).await();
-
-    } else if (terminal) {
+    if(elapsed < timeoutMs && !versionStatusResult.payload.isFinished) {
+      // Wait for a set interval and then poll again
+      sleepMs(pollIntervalMs);
+      return pollForDeploy(pollingState, versionId, false);
+    } else if (versionStatusResult.payload.isFinished) {
       return versionStatusResult.payload;
     } else {
-      Console.info('Polling timed out without reaching terminal status.');
+      Console.info('Polling timed out');
       return versionStatusResult.payload;
     }
   }
@@ -651,8 +622,8 @@ export function bundleAndDeploy(options) {
     let newVersionId = result.payload.newVersionId;
     if(!!newVersionId) {
       return executePollForDeploymentSuccess(newVersionId, 
-        options.deployPollingTimeoutMillis,
-      result);
+        options.deployPollingTimeoutMs,
+        result);
     } else {
       // The previous path
       Console.info(result.payload.message);
