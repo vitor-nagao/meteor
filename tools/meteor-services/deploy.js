@@ -21,7 +21,6 @@ import {
 } from './auth.js';
 import { recordPackages } from './stats.js';
 import { Console } from '../console/console.js';
-import { fiberHelpers } from '../utils/fiber-helpers.js';
 import { sleepMs } from '../utils/utils.js';
 
 const hasOwn = Object.prototype.hasOwnProperty;
@@ -78,6 +77,8 @@ function deployRpc(options) {
   if (options.headers.cookie) {
     throw new Error("sorry, can't combine cookie headers yet");
   }
+  // If we are waiting for deploy, we let Galaxy know so it can
+  // use that information to send us the right deploy message response.
   if(options.waitForDeploy) {
     let CAPABILITIES_WITH_WAIT = CAPABILITIES.slice();
     CAPABILITIES_WITH_WAIT.push('willPollVersionStatus');
@@ -567,6 +568,8 @@ export function bundleAndDeploy(options) {
   }
 
   // This will allow Galaxy to report messages to users ad-hoc
+  // Also if we are using the --no-wait flag, this will contain the message
+  // that Galaxy used to send after upload success.
   if(result.payload.message) {
     Console.info(result.payload.message);
   }
