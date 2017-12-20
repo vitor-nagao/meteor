@@ -78,7 +78,15 @@ function deployRpc(options) {
   if (options.headers.cookie) {
     throw new Error("sorry, can't combine cookie headers yet");
   }
-  options.qs = Object.assign({}, options.qs, {capabilities: CAPABILITIES});
+  if(options.waitForDeploy) {
+    let CAPABILITIES_WITH_WAIT = CAPABILITIES.slice();
+    CAPABILITIES_WITH_WAIT.push('willPollVersionStatus');
+    options.qs = Object.assign({}, options.qs,
+      {capabilities: CAPABILITIES_WITH_WAIT});
+  } else {
+    options.qs = Object.assign({}, options.qs,
+      {capabilities: CAPABILITIES});
+  }
 
   const deployURLBase = getDeployURL(options.site).await();
 
@@ -177,7 +185,8 @@ function authedRpc(options) {
     site: rpcOptions.site,
     expectPayload: [],
     qs: options.qs,
-    printDeployURL: options.printDeployURL
+    printDeployURL: options.printDeployURL,
+    waitForDeploy: options.waitForDeploy,
   });
   delete rpcOptions.printDeployURL;
 
@@ -333,42 +342,16 @@ function executePollForDeploymentSuccess(versionId, deployPollTimeout, result) {
   let pollingState = new PollingState(deployPollTimeout);
   
   var deploymentPollResult = buildmessage.enterJob({
-    title: "Waiting for Deploy to succeed..."}, 
+    title: "Waiting for deploy to succeed..."},
     function() {
       return pollForDeploy(pollingState,
         versionId);
     });
 
-  const {
-    newVersionNum, hostname, username, region, galaxyUrl
-  } = result.payload;
-  if(deploymentPollResult && deploymentPollResult.isActive) {
-    // The deploy succeeded and the deployed version is now active
-    const successfulDeploymentMessage = `
-******************************************************************************
-You have successfully upgraded your app to version ${newVersionNum}.
-Hostname: ${hostname}, Region: ${region}, Username: ${username}
-For details, visit ${galaxyUrl}.
-******************************************************************************
-    `;
-    Console.info(successfulDeploymentMessage);
-  } else {
-    // The deploy did not succeed or the polling timed out
-    if(deploymentPollResult.buildStatus === 'failed-permanently' ||
-      deploymentPollResult.deployStatus === 'failed') {
-        const failedDeploymentMessage = `
-******************************************************************************
-ERROR: Failed to deploy new app version: ${newVersionNum}.
-See ${galaxyUrl}/logs for details.
-******************************************************************************
-        `;
-        Console.info(successfulDeploymentMessage);
-      } else {
-        // The status was non-terminal, so we most likely timed out
-        Console.info(result.payload.message);
-        return 1;
-      }
+  if (deploymentPollResult && deploymentPollResult.isActive) {
+    return 0;
   }
+  return 1;
 }
 
 // Creates a polling configuration with defaults if fields left unset
@@ -376,8 +359,7 @@ See ${galaxyUrl}/logs for details.
 // We envision potentially creating this configuration object in a programmatic
 // way or via user-specification in the future.
 // Default initialWaitTime is 10 seconds – this is the time to wait before checking at all
-// Default startInterval is 700 milliseconds – this is the first wait interval between polls
-// Default backoffFactor is 1.3
+// Default pollInterval is 700 milliseconds – this is the wait interval between polls
 // Default timeout is 15 minutes
 class PollingState {
   constructor(timeoutMs,
@@ -391,32 +373,27 @@ class PollingState {
 
   // Declare tracking variables for the duration of the poll
   // `start` tracks the time when we started polling
-  // `pollingRounds` tracks the number of rounds we have polled
-  // `currentStatus` tracks what the current status is for this version
+  // `currentMessage` tracks what the current status message is for this version
   initialize() {
     this.start = new Date();
-    this.currentStatus = {
-      buildStatus: 'missing',
-      deployStatus: 'missing',
-      isActive: false,
-      isFinished: false,
-    }
+    this.currentMessage = '';
   }
 }
 
 // Poll the "version-status" endpoint for the build and deploy status
 // of a specified version ID with a polling configuration.
-// This will only end successfully when the version being polled is marked as the
-// active version by Galaxy. If the build / deploy fails, then the poll
-// will exit. At the end of the poll, this function will return a JSON object
-// which contains a `buildStatus` string, `deployStatus` string, and `isActive` boolean
+// This will only end successfully when the polling endpoint reports that
+// the version deployment is finished. The version-status endpoints will report
+// messages pertaining to the status of the version, which will then be reported
+// directly to the user. When the poll is complete, it will return an object
+// with information about the final state of the version and the app.
 function pollForDeploy(pollingState, versionId, firstRun = true) {
   const {
     timeoutMs,
     initialWaitTimeMs,
     pollIntervalMs,
     start,
-    currentStatus,
+    currentMessage,
   } = pollingState;
   // If this is the first poll, we will wait for initialWaitTimeMs milliseconds 
   // before beginning. We also want to initialize all of our tracking variables
@@ -436,61 +413,31 @@ function pollForDeploy(pollingState, versionId, firstRun = true) {
     printDeployURL: false,
   });
 
-  //Check the details of the Version Status response and compare to last call
+  //Check the details of the Version Status response and compare message to last call
   if(versionStatusResult &&
     versionStatusResult.payload &&
-    versionStatusResult.payload.buildStatus) {
-    // Collect all of the statuses from the returned rpc call
-    const {
-      buildStatus, deployStatus, isActive, isFinished
-    } = versionStatusResult.payload;
-
-    // If the build status has changed, we should report on that change to the user
-    // Allowable values for buildStatus are :
-    // ['missing', 'failed-temporarily', 'failed-permanently', 'success', 'building']
-    //    We will ignore the 'missing' buildStatus, and treat 'failed-temporarily'
-    //    the same as we do 'building', trusting the server to change the status.
-    if(currentStatus.buildStatus !== buildStatus) {
-      // Update our tracking variable for buildStatus
-      currentStatus.buildStatus = buildStatus;
-      // If the build was successful, report it
-      if (buildStatus === 'success') {
-          Console.info('Successfully built app image, initiating deploy');
-      } else {
-        // Report if the buildStatus changes state
-        Console.info(`Build status: ${buildStatus}`)
+    versionStatusResult.payload.message) {
+      const message = versionStatusResult.payload.message;
+      if ( currentMessage !== message ) {
+        Console.info(message);
+        pollingState.currentMessage = message;
       }
-    } else if(currentStatus.deployStatus !== deployStatus) {
-      currentStatus.deployStatus = deployStatus;
-      if (deployStatus === 'success') {
-          Console.info('Your app has been deployed successfully.' +
-            ' Checking for new version to be active...');
-      } else {
-        // Report if the deployStatus changes state
-        Console.info(`Deploy status: ${deployStatus}`)
-      }
-    } else if(currentStatus.isActive !== isActive) {
-      currentStatus.isActive = isActive;
-      // isActive was initialized to false, so it can only be true
-      Console.info('Your deployed version is now active.');
-    }
   } else {
     // If we did not get a valid Version Status response, just fail silently
     // keep polling as per usual – this may have just been a whiff from Galaxy
   }
 
-  let elapsed = new Date().getTime() - start;
-  // Poll again if version status isn't in a terminal state and we haven't exceeded the timeout
-  if(elapsed < timeoutMs && !versionStatusResult.payload.isFinished) {
+  const elapsed = new Date().getTime() - start;
+  const finishStatus = versionStatusResult.payload.finishStatus;
+  // Poll again if version isn't finished and we haven't exceeded the timeout
+  if(elapsed < timeoutMs && !finishStatus.isFinished) {
     // Wait for a set interval and then poll again
     sleepMs(pollIntervalMs);
     return pollForDeploy(pollingState, versionId, false);
-  } else if (versionStatusResult.payload.isFinished) {
-    return versionStatusResult.payload;
-  } else {
-    Console.info('Polling timed out');
-    return versionStatusResult.payload;
+  } else if (!finishStatus.isFinished) {
+    Console.info('Polling timed out')
   }
+  return finishStatus;
 }
 
 
@@ -507,6 +454,9 @@ function pollForDeploy(pollingState, versionId, firstRun = true) {
 //   stats server.
 // - buildOptions: the 'buildOptions' argument to the bundler
 // - rawOptions: any unknown options that were passed to the command line tool
+// - waitForDeploy: whether to poll Galaxy after upload for deploy status
+// - deploy-polling-timeout: user overridden timeout for polling Galaxy
+//   for deploy status
 export function bundleAndDeploy(options) {
   if (options.recordPackageUsage === undefined) {
     options.recordPackageUsage = true;
@@ -607,6 +557,7 @@ export function bundleAndDeploy(options) {
       preflightPassword: preflight.preflightPassword,
       // Disable the HTTP timeout for this POST request.
       timeout: null,
+      waitForDeploy: options.waitForDeploy,
     });
   });
 
@@ -615,22 +566,19 @@ export function bundleAndDeploy(options) {
     return 1;
   }
 
-  // After an upload succeeds, we want to poll Galaxy to see if the build / deploy succeeds
-  // We used to indicate that the upload was finished via a message to check Galaxy
-  if (result.payload.message) {
-    // If there is a newVersionId, then poll for status of the app
-    let newVersionId = result.payload.newVersionId;
-    if(!!newVersionId) {
-      Console.info('options!', options);
-      return executePollForDeploymentSuccess(newVersionId, 
-        options.deployPollingTimeoutMillis,
-        result);
-    } else {
-      // The previous path
-      Console.info(result.payload.message);
-      return 1;
-    }
-  } else {
+  // This will allow Galaxy to report messages to users ad-hoc
+  if(result.payload.message) {
+    Console.info(result.payload.message);
+  }
+  // After an upload succeeds, we want to poll Galaxy to see if the
+  // build / deploy succeed. We indicate that Meteor should poll for version
+  // status by including a newVersionId in the payload.
+  if (options.waitForDeploy && result.payload.newVersionId) {
+    return executePollForDeploymentSuccess(
+      result.payload.newVersionId,
+      options.deployPollingTimeoutMs,
+      result);
+  } else if (!result.payload.message) {
     var deployedAt = require('url').parse(result.payload.url);
     var hostname = deployedAt.hostname;
 

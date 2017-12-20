@@ -1348,6 +1348,7 @@ main.registerCommand({
     'override-architecture-with-local' : { type: Boolean },
     'allow-incompatible-update': { type: Boolean },
     'deploy-polling-timeout': {type: Number},
+    'no-wait': { type: Boolean },
   },
   allowUnrecognizedOptions: true,
   requiresApp: function (options) {
@@ -1408,10 +1409,12 @@ main.registerCommand({
     serverArch: buildArch
   };
 
-  let deployPollingTimeoutMillis = null;
+  let deployPollingTimeoutMs = null;
   if (!!options['deploy-polling-timeout']) {
-    deployPollingTimeoutMillis = options['deploy-polling-timeout'];
+    deployPollingTimeoutMs = options['deploy-polling-timeout'];
   }
+
+  let waitForDeploy = !options['no-wait'];
 
   var deployResult = deploy.bundleAndDeploy({
     projectContext: projectContext,
@@ -1419,7 +1422,8 @@ main.registerCommand({
     settingsFile: options.settings,
     buildOptions: buildOptions,
     rawOptions,
-    deployPollingTimeoutMillis,
+    deployPollingTimeoutMs,
+    waitForDeploy,
   });
 
   if (deployResult === 0) {

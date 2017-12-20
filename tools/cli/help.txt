@@ -502,6 +502,8 @@ Options:
   --deploy-polling-timeout  The number of milliseconds to wait for build/deploy
                   success or failure after a successful upload of your app's
                   minified code; defaults to 15 minutes.
+  --no-wait       Exits when Meteor has uploaded the app's minified code instead 
+                  of waiting for the deploy to conclude.
 
 
 >>> logs
