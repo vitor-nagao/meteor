@@ -413,7 +413,7 @@ function pollForDeploy(pollingState, versionId, firstRun = true) {
     expectPayload: [],
     printDeployURL: false,
   });
-
+  
   //Check the details of the Version Status response and compare message to last call
   if(versionStatusResult &&
     versionStatusResult.payload &&
@@ -424,8 +424,14 @@ function pollForDeploy(pollingState, versionId, firstRun = true) {
         pollingState.currentMessage = message;
       }
   } else {
-    // If we did not get a valid Version Status response, just fail silently
+    // If we did not get a valid Version Status response, just fail silently and
     // keep polling as per usual – this may have just been a whiff from Galaxy
+    // We do the retry here because we might hit an error if we try to parse the
+    // result of the version-status call below.
+    if(new Date().getTime - start < timeoutMs) {
+      sleepMs(pollIntervalMs);
+      return pollForDeploy(pollingState, versionid, false);
+    }
   }
 
   const elapsed = new Date().getTime() - start;
@@ -436,7 +442,9 @@ function pollForDeploy(pollingState, versionId, firstRun = true) {
     sleepMs(pollIntervalMs);
     return pollForDeploy(pollingState, versionId, false);
   } else if (!finishStatus.isFinished) {
-    Console.info('Polling timed out')
+    Console.info(`Polling timed out. To check the status of your app, visit
+    ${versionStatusResult.payload.galaxyUrl}. To change the default polling
+    timeout, use the flag '--deploy-polling-timeout' with 'meteor deploy'`)
   }
   return finishStatus;
 }
@@ -507,7 +515,7 @@ export function bundleAndDeploy(options) {
   var buildDir = mkdtemp('build_tar');
   var bundlePath = pathJoin(buildDir, 'bundle');
 
-  Console.info('Deploying your app...');
+  Console.info('Preparing to deploy your app...');
 
   var settings = null;
   var messages = buildmessage.capture({
