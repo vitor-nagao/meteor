@@ -700,23 +700,6 @@ export function temporaryMongoUrl(site) {
   }
 };
 
-export function logs(site) {
-  site = canonicalizeSite(site);
-  if (! site) {
-    return 1;
-  }
-
-  var result = checkAuthThenSendRpc(site, 'logs', 'view logs');
-
-  if (result === null) {
-    return 1;
-  } else {
-    Console.info(result.message);
-    maybePrintRegistrationLink({ leadingNewline: true });
-    return 0;
-  }
-};
-
 export function listAuthorized(site) {
   site = canonicalizeSite(site);
   if (! site) {
