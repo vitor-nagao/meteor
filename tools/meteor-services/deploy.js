@@ -367,7 +367,7 @@ class PollingState {
     pollIntervalMs,
     maxErrors) {
       const FIFTEEN_MINUTES_MS = 15*60*1000;
-      const MAX_ERRORS = 20
+      const MAX_ERRORS = 5
       this.initialWaitTimeMs = initialWaitTimeMs || 10*1000;
       this.pollIntervalMs = pollIntervalMs || 700;
       this.deadline = timeoutMs ? new Date(new Date().getTime() + timeoutMs) :
