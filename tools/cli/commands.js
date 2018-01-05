@@ -1414,7 +1414,7 @@ main.registerCommand({
     deployPollingTimeoutMs = options['deploy-polling-timeout'];
   }
 
-  let waitForDeploy = !options['no-wait'];
+  const waitForDeploy = !options['no-wait'];
 
   var deployResult = deploy.bundleAndDeploy({
     projectContext: projectContext,
