@@ -342,7 +342,7 @@ function pollForDeploymentSuccess(versionId, deployPollTimeout, result) {
     title: "Waiting for deploy to succeed..."},
     function() {
       // Begin polling after a pause
-      sleepMs(initialWaitTimeMs);
+      sleepMs(pollingState.initialWaitTimeMs);
       return pollForDeploy(pollingState, versionId);
     });
 
@@ -556,7 +556,7 @@ export function bundleAndDeploy(options) {
       site: site,
       qs: Object.assign({}, options.rawOptions, settings !== null ? {settings: settings} : {}),
       bodyStream: createTarGzStream(pathJoin(buildDir, 'bundle')),
-      expectPayload: ['url', 'message'],
+      expectPayload: ['url'],
       preflightPassword: preflight.preflightPassword,
       // Disable the HTTP timeout for this POST request.
       timeout: null,
@@ -572,7 +572,9 @@ export function bundleAndDeploy(options) {
   // This will allow Galaxy to report messages to users ad-hoc
   // Also if we are using the --no-wait flag, this will contain the message
   // that Galaxy used to send after upload success.
-  Console.info(result.payload.message);
+  if (result.payload.message) {
+    Console.info(result.payload.message);
+  }
 
   // After an upload succeeds, we want to poll Galaxy to see if the
   // build / deploy succeed. We indicate that Meteor should poll for version
