@@ -419,7 +419,7 @@ function pollForDeploy(pollingState, versionId, galaxyUrl) {
     // We do the retry here because we might hit an error if we try to parse the
     // result of the version-status call below.
     Console.warn('Received malformed response from Galaxy',
-      versionStatusResult.ErrorMessage);
+      versionStatusResult.errorMessage);
     pollingState.errors++;
     if (pollingState.errors >= pollingState.maxErrors) {
       throw new Error(versionStatusResult.errorMessage);
